@@ -1,0 +1,173 @@
+/*
+ * compatibility boundary: every codex-specific surface token and selector lives here.
+ * app updates should only require changes to this file.
+ */
+
+/* Codex 26.908 uses data-theme; retain the older Electron class markers. */
+:root[data-theme="light"],
+[data-theme="light"],
+:root.electron-light,
+.electron-light {
+  --codex-backdrop-surface: rgb(248 249 252 / __SURFACE__);
+  --codex-backdrop-canvas: rgb(248 249 252 / __CANVAS__);
+  --codex-backdrop-sidebar: rgb(242 245 250 / __SIDEBAR__);
+  --codex-backdrop-titlebar: rgb(248 249 252 / __TOP__);
+  --codex-backdrop-frame: rgb(248 249 252);
+  --codex-backdrop-border: rgb(31 35 40 / 0.14);
+  --codex-backdrop-guard-surface: rgb(248 249 252);
+  --codex-backdrop-guard-text: rgb(31 35 40);
+}
+
+:root[data-theme="dark"],
+[data-theme="dark"],
+:root.electron-dark,
+.electron-dark {
+  --codex-backdrop-surface: rgb(8 12 22 / __SURFACE__);
+  --codex-backdrop-canvas: rgb(8 12 22 / __CANVAS__);
+  --codex-backdrop-sidebar: rgb(6 10 19 / __SIDEBAR__);
+  --codex-backdrop-titlebar: rgb(8 12 22 / __TOP__);
+  --codex-backdrop-frame: rgb(8 12 22);
+  --codex-backdrop-border: rgb(255 255 255 / 0.11);
+  --codex-backdrop-guard-surface: rgb(18 23 34);
+  --codex-backdrop-guard-text: rgb(248 249 252);
+}
+
+/* Codex 26.924 starts its page surfaces 8px below the 36px application menu.
+ * Cover that inset too, so no wallpaper seam shows under the top bar. */
+:root {
+  --codex-backdrop-titlebar-height: 44px;
+}
+
+:root,
+[data-codex-window-type="electron"] {
+  --startup-background: transparent !important;
+  --color-background-surface: var(--codex-backdrop-surface) !important;
+  --color-surface: var(--codex-backdrop-surface) !important;
+  --main-surface-primary: var(--codex-backdrop-surface) !important;
+  --color-token-main-surface-primary: var(--codex-backdrop-surface) !important;
+  --color-background-surface-under: var(--codex-backdrop-sidebar) !important;
+  --color-token-side-bar-background: var(--codex-backdrop-sidebar) !important;
+  --color-token-bg-primary: var(--codex-backdrop-sidebar) !important;
+  --color-surface-secondary: var(--codex-backdrop-sidebar) !important;
+  --vscode-sideBar-background: var(--codex-backdrop-sidebar) !important;
+  --color-background-editor-opaque: var(--codex-backdrop-surface) !important;
+  --vscode-editor-background: var(--codex-backdrop-surface) !important;
+  --vscode-editorPane-background: var(--codex-backdrop-surface) !important;
+  --color-surface-tertiary: var(--codex-backdrop-surface) !important;
+  --vscode-panel-background: var(--codex-backdrop-surface) !important;
+  --vscode-terminal-background: transparent !important;
+  --color-codex-terminal-background: var(--codex-backdrop-surface) !important;
+}
+
+html,
+body,
+#root,
+#__next,
+body > #root,
+body > #__next,
+[data-codex-window-type="electron"] {
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+body > #root,
+body > #__next {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+}
+
+[role="banner"],
+[data-testid*="titlebar" i],
+[class*="titlebar" i],
+header[class*="top-toolbar"],
+header.draggable {
+  background: transparent !important;
+  border-color: transparent !important;
+  backdrop-filter: none !important;
+}
+
+/* Fade only the conversation scroller, leaving the wallpaper and title chrome
+ * unpainted. Codex 26.924 starts the scroller below the task title unless the
+ * header edge-scrolls over it; its top inset then grows by the header height,
+ * so the inset beyond its normal 8 spacing units is the part to hide. */
+.thread-scroll-container {
+  --codex-backdrop-thread-fade-start: calc(var(--thread-content-top-inset, 82px) - var(--spacing, 4px) * 8);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, transparent var(--codex-backdrop-thread-fade-start), black calc(var(--codex-backdrop-thread-fade-start) + 40px), black 100%);
+  mask-image: linear-gradient(to bottom, transparent 0, transparent var(--codex-backdrop-thread-fade-start), black calc(var(--codex-backdrop-thread-fade-start) + 40px), black 100%);
+}
+
+main,
+[role="main"],
+[data-slot="main"],
+[data-testid="main"] {
+  background-color: transparent !important;
+  backdrop-filter: none !important;
+}
+
+/* The surface paints its tint inside its hairline border only; extend it so the
+ * hairline sits on the tint instead of on raw wallpaper. */
+[data-app-shell-main-surface] {
+  background-color: var(--codex-backdrop-canvas) !important;
+  background-clip: border-box !important;
+  backdrop-filter: none !important;
+}
+
+/* Local glass keeps the composer readable without hiding the wallpaper canvas. */
+[data-composer-surface-variant] {
+  background-color: var(--codex-backdrop-surface) !important;
+  border: 1px solid var(--codex-backdrop-border) !important;
+  border-radius: 20px !important;
+  border-color: var(--codex-backdrop-border) !important;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.16), 0 8px 24px rgb(24 49 80 / 0.10) !important;
+  backdrop-filter: var(--codex-backdrop-glass) !important;
+}
+
+[data-composer-surface-variant] [class*="_ComposerLayoutBody_"] {
+  background-color: transparent !important;
+  backdrop-filter: none !important;
+}
+
+[class*="_MainContentTopFade_"] {
+  background-image: none !important;
+}
+
+[class*="bg-gradient-to-t"][class*="from-surface"][class*="via-surface"] {
+  background-image: none !important;
+}
+
+[data-slot="sidebar"],
+[data-sidebar="sidebar"],
+aside,
+nav[aria-label*="sidebar" i] {
+  background-color: var(--codex-backdrop-sidebar) !important;
+  border-color: var(--codex-backdrop-border) !important;
+  backdrop-filter: __SIDEBAR_FILTER__ !important;
+}
+
+/* Transient UI remains entirely native. Backdrop must not own the colors or
+ * blur of menus, popovers, tooltips, dialogs, usage/account panels, or voice. */
+
+/* If native transient text becomes unreadable during a route animation, the
+ * sentry shields only that surface. The wallpaper and injected nodes stay put. */
+[data-codex-backdrop-contrast-guard] {
+  background-color: var(--codex-backdrop-guard-surface) !important;
+  background-image: none !important;
+  backdrop-filter: none !important;
+}
+
+[data-codex-backdrop-text-guard] {
+  color: var(--codex-backdrop-guard-text) !important;
+  -webkit-text-fill-color: var(--codex-backdrop-guard-text) !important;
+}
+
+/* Browser previews are body-level Electron webview portals, not descendants of
+ * #root. The fixed host root is itself a stacking context, so raise that root
+ * above both the backdrop (z=0) and app shell (z=1). Codex 26.924 moved the
+ * portal to a shared embedded-frame host. */
+[data-browser-sidebar-webview-host-root],
+[data-embedded-frame-host-root] {
+  z-index: 2 !important;
+  isolation: isolate !important;
+  pointer-events: none !important;
+}
