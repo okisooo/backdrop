@@ -1,0 +1,99 @@
+<!doctype html>
+<!-- Dev harness: Claude-like UI built from Claude's design tokens, for checking the calm field,
+     popups, shadows and dialog backdrops through `ClaudeBackdrop --snapshot --window`.
+     Add #modal to the URL to open the dialog, #newchat for an empty chat with a large composer,
+     #browser for a docked browser pane, #lightbox for an image viewer, #video for a fullscreen video,
+     #dark for the dark theme. -->
+<html>
+<head>
+<meta charset="utf-8">
+<title>Backdrop harness</title>
+<style>
+  :root {
+    --ink: #141413;
+    --veil-1: rgb(20 20 19 / 5%);
+    --veil-2: rgb(20 20 19 / 10%);
+    --shadow-popover: 0 8px 24px #0000001f, 0 2px 6px #00000014;
+    --shadow-lg: 0 10px 15px -3px #0000001a, 0 4px 6px -4px #0000001a;
+    --backdrop: #00000080;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #FCFCFB; color: var(--ink); font: 15px/1.6 "Segoe UI", sans-serif; display: flex; height: 100vh; overflow: hidden; }
+  aside { width: 274px; background: #FAFAF9; border-right: 1px solid var(--veil-2); padding: 56px 12px; }
+  aside div { padding: 6px 10px; border-radius: 8px; margin: 2px 0; }
+  aside .on { background: var(--veil-1); }
+  main { flex: 1; position: relative; padding: 48px 0 0 120px; }
+  .col { width: 760px; }
+  .bubble { margin-left: auto; width: fit-content; max-width: 560px; background: var(--veil-1); padding: 10px 14px; border-radius: 12px; }
+  pre { background: var(--veil-1); padding: 12px 14px; border-radius: 10px; font: 13px/1.5 Consolas, monospace; }
+  code { background: #F0F0EF; border: 1px solid #D8D8D8; color: #A35252; padding: 1px 4px; border-radius: 4px; font: 13px Consolas, monospace; }
+  .card { border: 1px solid var(--veil-2); border-radius: 12px; padding: 10px 14px; margin: 12px 0; }
+  .menu { position: absolute; left: 700px; top: 250px; width: 240px; background: #fff; border-radius: 12px; padding: 6px;
+          box-shadow: 0 0 0 1px var(--veil-2), var(--shadow-popover); }
+  .menu div { padding: 7px 10px; border-radius: 8px; }
+  .menu .hover { background: var(--veil-1); }
+  .composer { position: absolute; left: 120px; bottom: 36px; width: 760px; height: 56px; background: #fff; border-radius: 16px;
+              box-shadow: 0 0 0 1px var(--veil-2), var(--shadow-lg); padding: 16px; color: #8a8985; }
+  .backdrop { display: none; position: fixed; inset: 0; background: var(--backdrop); }
+  .dialog { display: none; position: fixed; left: 50%; top: 45%; transform: translate(-50%, -50%); width: 420px; background: #fff;
+            border-radius: 16px; padding: 22px; box-shadow: var(--shadow-lg); }
+  .dialog .row { background: var(--veil-1); border-radius: 10px; padding: 10px 12px; margin-top: 12px; }
+  body.modal .backdrop, body.modal .dialog { display: block; }
+  /* New chat: empty page with a large composer, which outweighs the sidebar color. */
+  body.newchat .col, body.newchat .menu { display: none; }
+  body.newchat .composer { left: 60px; bottom: 180px; width: 1080px; height: 520px; }
+  /* Browser pane docked right: Claude's bar over it, then a web page with its own light gray. */
+  .pane { display: none; position: absolute; right: 0; top: 0; bottom: 0; width: 620px; border-left: 1px solid var(--veil-2); }
+  .pane .bar { height: 48px; padding: 9px 12px; }
+  .pane .bar div { background: #fff; border: 1px solid var(--veil-2); border-radius: 8px; padding: 4px 10px; color: #6b6a66; font-size: 13px; }
+  .pane .page { position: absolute; top: 48px; left: 0; right: 0; bottom: 0; background: #F5F5F5; padding: 28px 32px; font-family: Georgia, serif; }
+  .pane .page .card { background: #fff; border: 1px solid #e3e3e3; }
+  .pane .page .soft { background: #FAFAFA; padding: 14px; border-radius: 6px; }
+  body.browser .pane { display: block; }
+  body.browser .col { width: 560px; }
+  body.browser main { padding-left: 40px; }
+  body.browser .menu, body.browser .composer { display: none; }
+  /* Image viewer: an 80% black overlay with the image; the top bar stays uncovered. */
+  .viewer { display: none; position: fixed; left: 0; right: 0; top: 36px; bottom: 0; background: rgb(0 0 0 / 80%); }
+  .viewer div { position: absolute; left: 50%; top: 50%; width: 640px; height: 400px; transform: translate(-50%, -50%);
+                  background: linear-gradient(135deg, #f7c873, #e2566e 50%, #3b4cc0); border-radius: 6px; }
+  body.lightbox .viewer { display: block; }
+  /* Dark theme, to check that a theme switch is not taken for an overlay. */
+  body.dark { background: #262624; color: #C3C2B7; }
+  body.dark aside { background: #1F1E1D; border-color: rgb(255 255 255 / 8%); }
+  body.dark .bubble, body.dark pre, body.dark aside .on { background: rgb(255 255 255 / 5%); }
+  body.dark code { background: #30302E; border-color: #3e3e3a; color: #e69a8d; }
+  body.dark .menu, body.dark .composer { background: #30302E; }  /* Video filling the window (fullscreen player): black bars around a moving picture. */
+  .player { display: none; position: fixed; inset: 0; background: #000; }
+  .player div { position: absolute; left: 50%; top: 50%; width: 1200px; height: 675px; transform: translate(-50%, -50%);
+               background: radial-gradient(circle at 30% 40%, #3a2a70, #0b0614 60%), #000; }
+  body.video .player { display: block; }</style>
+</head>
+<body>
+<aside>
+  <div class="on">Claude Backdrop</div><div>Multi-device sync</div><div>Handoff resume</div><div>nymesite</div>
+</aside>
+<main>
+  <div class="col">
+    <div class="bubble">is there any way pop ups can still retain their shadow?</div>
+    <p>Popups are white panels with a soft shadow: <code>0 8px 24px #0000001f</code>. Message bubbles and chips are translucent veils over the page background.</p>
+    <pre>float4 PS(float4 pos : SV_Position) : SV_Target
+{
+    return float4(saturate(p.rgb + (1 - a) * (1 - keep) * (w - k)), 1);
+}</pre>
+    <div class="card">Edited 3 files <span style="float:right;color:#2f7d4f">+212 -40</span></div>
+    <p>Outlined cards keep a transparent interior, so the wallpaper shows inside them, framed by a hairline.</p>
+    <p>Inline code like <code>claude-backdrop</code>, <code>install.ps1</code> and <code>C:\src\claude-backdrop</code> sits in small chips.</p>
+  </div>
+<div class="pane"><div class="bar"><div>https://example.com/docs</div></div>
+  <div class="page"><h2>Example Domain</h2><p>This page has its own light gray background, which is not Claude's.</p>
+  <div class="card">A white card on the page.</div><div class="soft">A softer section in #FAFAFA.</div></div></div>  <div class="menu"><div>Opus 5.5</div><div class="hover">Sonnet 5</div><div>Haiku 4.5</div><div>More models</div></div>
+  <div class="composer">Type / for commands</div>
+</main>
+<div class="backdrop"></div>
+<div class="viewer"><div></div></div>
+<div class="player"><div></div></div>
+<div class="dialog"><b>Archive session?</b><div class="row">The dialog sits on a 50% backdrop.</div><div class="row">Its rows are veils.</div></div>
+<script>if (location.hash) document.body.classList.add(location.hash.slice(1));</script>
+</body>
+</html>
