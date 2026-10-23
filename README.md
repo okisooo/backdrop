@@ -1,5 +1,10 @@
 # Claude Backdrop
 
+> [!IMPORTANT]
+> Development has moved to **[Backdrop](https://github.com/okisooo/backdrop)**, the unified Windows app for Claude Desktop, Codex Desktop, and T3 Code.
+>
+> Use the new repository for installation, updates, and issue reports. See the [upgrade instructions](https://github.com/okisooo/backdrop#upgrading-from-standalone-codex--claude--t3-backdrop). This repository retains the standalone app's history.
+
 A small Windows tray app that puts an image or animated GIF behind the official Claude desktop app. Claude's own interface stays sharp on top: text, buttons, the composer and the sidebar are drawn exactly as Claude draws them, with the wallpaper showing wherever Claude has its plain background.
 
 It does not modify Claude, its files, its settings or its network traffic. Sibling project: [Codex Backdrop](https://github.com/okisooo/codex-backdrop) does the same for the Codex desktop app, with the same tray menu.
