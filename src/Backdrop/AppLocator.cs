@@ -1,5 +1,3 @@
-using System.Diagnostics;
-
 namespace Backdrop;
 
 enum TargetApp
@@ -12,7 +10,8 @@ enum TargetApp
 static class AppLocator
 {
     static readonly object Sync = new();
-    static readonly Dictionary<(uint pid, long startTicks, TargetApp app), bool> Cache = new();
+    static readonly Dictionary<(uint pid, TargetApp app), bool> Cache = new();
+    static long _cacheClearedAt = Environment.TickCount64;
 
     public static string DisplayName(TargetApp app) => app switch
     {
@@ -71,45 +70,35 @@ static class AppLocator
 
     internal static bool IsTargetProcess(uint pid, TargetApp app)
     {
-        string imgPath = Native.ImagePathOf(pid) ?? "";
-        long startTicks = 0;
-        string modulePath = imgPath;
-        try
-        {
-            using var p = Process.GetProcessById((int)pid);
-            try { startTicks = p.StartTime.Ticks; } catch { }
-            try { modulePath = p.MainModule?.FileName ?? imgPath; } catch { }
-        }
-        catch
-        {
-            if (string.IsNullOrEmpty(imgPath)) return false;
-        }
-
-        var key = (pid, startTicks, app);
+        long now = Environment.TickCount64;
         lock (Sync)
         {
-            if (startTicks != 0 && Cache.TryGetValue(key, out bool known)) return known;
+            if (now - _cacheClearedAt > 30_000 || Cache.Count > 512)
+            {
+                Cache.Clear();
+                _cacheClearedAt = now;
+            }
+            if (Cache.TryGetValue((pid, app), out bool known)) return known;
         }
 
-        bool yes = MatchesPath(modulePath, imgPath, app);
-        if (startTicks != 0)
+        string path = Native.ImagePathOf(pid);
+        if (string.IsNullOrEmpty(path)) return false;
+
+        bool yes = MatchesPath(path, app);
+        lock (Sync)
         {
-            lock (Sync)
-            {
-                if (Cache.Count > 512) Cache.Clear();
-                Cache[key] = yes;
-            }
+            Cache[(pid, app)] = yes;
         }
         return yes;
     }
 
-    internal static bool MatchesPath(string modulePath, string imagePath, TargetApp app)
+    internal static bool MatchesPath(string path, TargetApp app)
     {
-        string path = !string.IsNullOrEmpty(modulePath) ? modulePath : imagePath ?? "";
+        if (string.IsNullOrEmpty(path)) return false;
         string file = Path.GetFileName(path);
         return app switch
         {
-            TargetApp.Codex => (imagePath ?? path).Contains(@"\WindowsApps\OpenAI.Codex_", StringComparison.OrdinalIgnoreCase),
+            TargetApp.Codex => path.Contains(@"\WindowsApps\OpenAI.Codex_", StringComparison.OrdinalIgnoreCase),
             TargetApp.Claude => file.Equals("claude.exe", StringComparison.OrdinalIgnoreCase) &&
                                 (path.Contains(@"\AnthropicClaude\", StringComparison.OrdinalIgnoreCase) ||
                                  path.Contains(@"\WindowsApps\Claude_", StringComparison.OrdinalIgnoreCase)),

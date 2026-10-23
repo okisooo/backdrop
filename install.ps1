@@ -25,11 +25,21 @@ $enableStartup = (-not $hadExistingInstall) -or $hadStartup
 
 # Stop running Backdrop or legacy standalone *Backdrop processes before swapping the executable
 foreach ($procName in @('Backdrop', 'ClaudeBackdrop', 'CodexBackdrop', 'T3Backdrop')) {
-    Get-Process $procName -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+    $procs = Get-Process $procName -ErrorAction SilentlyContinue
+    if ($procs) {
+        $procs | Stop-Process -Force -ErrorAction SilentlyContinue
+        $procs | Wait-Process -Timeout 5 -ErrorAction SilentlyContinue
+    }
 }
-Start-Sleep -Milliseconds 300
-
-Move-Item $stagedExe $exe -Force
+for ($attempt = 0; $attempt -lt 10; $attempt++) {
+    try {
+        [System.IO.File]::Move($stagedExe, $exe, $true)
+        break
+    } catch {
+        if ($attempt -eq 9) { throw }
+        Start-Sleep -Milliseconds 250
+    }
+}
 
 # Retire legacy standalone shortcuts and startup entries now that the new binary is in place
 $programs = [Environment]::GetFolderPath('Programs')

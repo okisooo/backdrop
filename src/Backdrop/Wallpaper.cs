@@ -56,17 +56,7 @@ sealed class Wallpaper : IDisposable
                 _cachedRefs++;
                 return _cachedInstance;
             }
-        }
-
-        var loaded = Load(full);
-        lock (CacheSync)
-        {
-            if (_cachedInstance != null && string.Equals(_cachedPath, full, StringComparison.OrdinalIgnoreCase) && _cachedWriteUtc == writeUtc)
-            {
-                loaded.DisposeCore();
-                _cachedRefs++;
-                return _cachedInstance;
-            }
+            var loaded = Load(full);
             if (_cachedInstance != null && _cachedRefs <= 0)
                 _cachedInstance.DisposeCore();
             loaded._shared = true;
