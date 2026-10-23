@@ -48,25 +48,23 @@ $link.Save()
 Set-ItemProperty -Path $runKey -Name 'Backdrop' -Value "`"$exe`""
 
 if (-not $NoStart) {
-    Start-Process explorer.exe "`"$exe`""
-    Start-Sleep -Milliseconds 700
-    if (-not (Get-Process Backdrop -ErrorAction SilentlyContinue)) {
-        try {
-            $service = New-Object -ComObject "Schedule.Service"
-            $service.Connect()
-            $rootFolder = $service.GetFolder("\")
-            $taskDef = $service.NewTask(0)
-            $taskDef.Settings.Enabled = $true
-            $taskDef.Settings.AllowDemandStart = $true
-            $taskDef.Principal.LogonType = 3
-            $action = $taskDef.Actions.Create(0)
-            $action.Path = $exe
-            $action.WorkingDirectory = $installDir
-            $regTask = $rootFolder.RegisterTaskDefinition("LaunchBackdrop", $taskDef, 6, $null, $null, 3)
-            $regTask.Run($null) | Out-Null
-            Start-Sleep -Seconds 1
-            $rootFolder.DeleteTask("LaunchBackdrop", 0)
-        } catch {}
+    try {
+        $service = New-Object -ComObject "Schedule.Service"
+        $service.Connect()
+        $rootFolder = $service.GetFolder("\")
+        $taskDef = $service.NewTask(0)
+        $taskDef.Settings.Enabled = $true
+        $taskDef.Settings.AllowDemandStart = $true
+        $taskDef.Principal.LogonType = 3
+        $action = $taskDef.Actions.Create(0)
+        $action.Path = $exe
+        $action.WorkingDirectory = $installDir
+        $regTask = $rootFolder.RegisterTaskDefinition("LaunchBackdrop", $taskDef, 6, $null, $null, 3)
+        $regTask.Run($null) | Out-Null
+        Start-Sleep -Milliseconds 700
+        $rootFolder.DeleteTask("LaunchBackdrop", 0)
+    } catch {
+        Start-Process explorer.exe "`"$exe`""
     }
 }
 Write-Host "Installed to $exe"
