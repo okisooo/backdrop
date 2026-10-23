@@ -14,12 +14,12 @@ sealed class Wallpaper : IDisposable
     static string _cachedPath;
     static DateTime _cachedWriteUtc;
     static Wallpaper _cachedInstance;
-    static int _cachedRefs;
 
     readonly object _sourceLock = new();
     readonly List<Bitmap> _source = new();
     readonly List<int> _delays = new();
     bool _shared;
+    int _references;
 
     public int FrameCount => _source.Count;
     public int Delay(int frame) => _delays[frame];
@@ -53,17 +53,15 @@ sealed class Wallpaper : IDisposable
         {
             if (_cachedInstance != null && string.Equals(_cachedPath, full, StringComparison.OrdinalIgnoreCase) && _cachedWriteUtc == writeUtc)
             {
-                _cachedRefs++;
+                _cachedInstance._references++;
                 return _cachedInstance;
             }
             var loaded = Load(full);
-            if (_cachedInstance != null && _cachedRefs <= 0)
-                _cachedInstance.DisposeCore();
             loaded._shared = true;
+            loaded._references = 1;
             _cachedPath = full;
             _cachedWriteUtc = writeUtc;
             _cachedInstance = loaded;
-            _cachedRefs = 1;
             return loaded;
         }
     }
@@ -166,8 +164,7 @@ sealed class Wallpaper : IDisposable
         }
         lock (CacheSync)
         {
-            _cachedRefs--;
-            if (_cachedRefs <= 0)
+            if (--_references == 0)
             {
                 if (_cachedInstance == this) { _cachedInstance = null; _cachedPath = null; }
                 DisposeCore();

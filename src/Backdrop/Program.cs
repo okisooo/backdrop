@@ -7,6 +7,11 @@ static class Program
     [STAThread]
     static int Main(string[] args)
     {
+        if (args.Length == 1 && args[0] == "--version")
+        {
+            Console.WriteLine($"Backdrop {typeof(Program).Assembly.GetName().Version?.ToString(3)}");
+            return 0;
+        }
         Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
 
         try { Task.Run(WindowCapture.RequestBorderlessAsync).Wait(3000); } catch { }

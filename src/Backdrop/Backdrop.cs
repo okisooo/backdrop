@@ -221,7 +221,8 @@ sealed unsafe class Backdrop : IDisposable
     {
         bool first = _settings == null;
         _settings = s;
-        if (_wallPath != s.BackgroundPath)
+        string wallPath = s.IsAppEnabled(_app) ? s.BackgroundPath : "";
+        if (_wallPath != wallPath)
         {
             var old = _wall;
             if (old != null)
@@ -231,11 +232,12 @@ sealed unsafe class Backdrop : IDisposable
                 else old.Dispose();
             }
             _wall = null;
-            _wallPath = s.BackgroundPath;
+            _prepared = _shownPrepared = null;
+            _wallPath = wallPath;
             _frameIndex = 0;
             if (!string.IsNullOrEmpty(_wallPath) && File.Exists(_wallPath))
             {
-                try { _wall = Wallpaper.Load(_wallPath); }
+                try { _wall = Wallpaper.AcquireShared(_wallPath); }
                 catch (Exception ex) { Log("wallpaper load failed: " + ex.Message); }
             }
         }

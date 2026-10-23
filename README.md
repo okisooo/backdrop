@@ -1,6 +1,21 @@
 # Backdrop
 
-A lightweight Windows system-tray app that puts an image or animated GIF behind **Claude Desktop**, **Codex Desktop**, and **T3 Code** from a single tray icon. Each app's own interface stays sharp on top—text, buttons, the composer, and the sidebar are drawn as the app draws them, with your wallpaper showing wherever the app has its plain background.
+**Your chats. Your backdrop.**
+
+Put an image or animated GIF behind **Claude Desktop, Codex Desktop, and T3 Code** with one Windows tray app. Keep the words sharp. Make the view yours.
+
+**[Download for Windows x64](https://github.com/okisooo/backdrop/releases/latest)** · [Get started](#download--run) · [Report an issue](https://github.com/okisooo/backdrop/issues)
+
+![Animated Backdrop demo showing the Claude, Codex, and T3 Code rendering profiles](docs/media/overview.gif)
+
+*Demo uses invented sample interfaces rendered through Backdrop's actual GPU compositor. These are not screenshots of the three apps. No private conversations or third-party wallpaper artwork are included. [Watch the MP4](https://github.com/okisooo/backdrop/releases/latest/download/backdrop-demo.mp4).*
+
+- **Your wallpaper:** images and animated GIFs, with cover/stretch, blur, and animation controls.
+- **Your words stay readable:** readability wash softens the background; calm fades it behind text and controls.
+- **Your apps stay familiar:** enable Claude, Codex, and T3 Code separately from one tray icon.
+- **Your PC:** local window capture and rendering. No account, telemetry, uploads, or network service.
+
+![Plain sample interface beside the same content with an animated Backdrop wallpaper](docs/media/readability.gif)
 
 It does not modify any of the three apps, their files, their settings, or their network traffic.
 
@@ -14,10 +29,21 @@ This is the unified home of [Codex Backdrop](https://github.com/okisooo/codex-ba
 
 ## Install
 
+### Download & Run
+
+1. Download **[Backdrop-win-x64.zip](https://github.com/okisooo/backdrop/releases/latest/download/Backdrop-win-x64.zip)** and extract it to a folder you want to keep.
+2. Run **Backdrop.exe**. The runtime is included; no SDK, separate .NET installation, or administrator rights are needed.
+3. Choose an image or animated GIF. An original sample wallpaper is included in the ZIP.
+4. Right-click the tray icon to adjust **Readability wash**, **Calm behind content**, **Blur**, or the enabled apps.
+
+Double-click the tray icon to choose another wallpaper. Enable **Start with Windows** if you want automatic startup.
+
+Release binaries are unsigned. Each release includes a `SHA256SUMS.txt` checksum file. Backdrop bundles its runtime, so keep the app updated through [GitHub Releases](https://github.com/okisooo/backdrop/releases).
+
 ### Prerequisites
 
 - **OS:** Windows 10 version 2004 (build 19041) or later; Windows 11 recommended (`win-x64`).
-- **To run a prebuilt `Backdrop.exe`:** the [.NET 9 Desktop Runtime (x64)](https://dotnet.microsoft.com/download/dotnet/9.0).
+- **Portable release:** the runtime is included. A source build made without `-SelfContained` requires the [.NET 9 Desktop Runtime (x64)](https://dotnet.microsoft.com/download/dotnet/9.0).
 - **To build or install from source (`.\install.ps1` / `.\build.ps1`):** the [.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0).
 
 ### Build & Install from Source
@@ -51,6 +77,8 @@ Wallpaper and appearance settings are shared across all enabled apps and stored 
 
 ### Upgrading from Standalone Codex / Claude / T3 Backdrop
 
+For the portable download, first disable **Start with Windows** in your old standalone app and quit it, then run the unified Backdrop app.
+
 On first run, Backdrop automatically imports your existing configuration (checking `%LOCALAPPDATA%\CodexBackdrop\config.json`, `%LOCALAPPDATA%\ClaudeBackdrop\config.json`, and `%LOCALAPPDATA%\T3Backdrop\config.json` in that order, including Codex Backdrop 1.x `schemaVersion` configs). Running `.\install.ps1` stops the legacy standalone processes and replaces their Start menu shortcuts and Windows startup entries with the unified `Backdrop` entry.
 
 The unified app supports image and GIF wallpapers. Video wallpapers from the original Codex Backdrop release are not supported; choose an image or GIF when upgrading.
@@ -79,7 +107,7 @@ Measured on a 1920×1032 window actively rendering at ~55 fps with an animated G
 | GPU renderer | ~0.3 ms | < 1 ms |
 | CPU renderer (fallback) | ~12 ms | ~12 ms |
 
-When a target window is idle, minimized, or covered by another window, animation pauses and the engine does no rendering work.
+Animation pauses when a target window is hidden, minimized, or fully covered by another window.
 
 ## Limitations
 
@@ -115,13 +143,19 @@ Run the non-interactive test suite (builds the app and runs synthetic detector t
 
 Pass `-GifPath path\to\loop.gif` to also test multi-frame GIF decoding and preparation.
 
+The engine checks also verify shared wallpaper lifetime across engines, pause/resume behavior, and clearing stale frames when a wallpaper path becomes invalid.
+
+- Package the portable release: `.\tools\package-release.ps1 -OutputDirectory .\artifacts\release`.
+- Reproduce the public media: see [demo sources and provenance](docs/media/README.md).
+- Print the version without starting the tray app: `Backdrop.exe --version`.
+
 ## Privacy
 
 Backdrop captures only the target Claude, Codex, and T3 Code windows locally in memory to composite them on your screen. Nothing is saved to disk (unless you explicitly run `--snapshot` or `--capture-overlay`) and nothing is transmitted over the network.
 
 ## Project History
 
-Backdrop combines the standalone Codex Backdrop, Claude Backdrop, and T3 Backdrop implementations in one codebase. Development continues here. The original [Codex Backdrop](https://github.com/okisooo/codex-backdrop) and [Claude Backdrop](https://github.com/okisooo/claude-backdrop) repositories retain their earlier code, commits, issues, and releases.
+Backdrop combines the standalone Codex Backdrop, Claude Backdrop, and T3 Backdrop implementations in one codebase. The published Git histories of [Codex Backdrop](https://github.com/okisooo/codex-backdrop) and [Claude Backdrop](https://github.com/okisooo/claude-backdrop) are included in this repository's `main` history; their existing issues and releases remain in the original repositories. New downloads, updates, and issue reports belong here.
 
 ## License
 

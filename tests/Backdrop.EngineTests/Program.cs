@@ -19,6 +19,7 @@ static unsafe class EngineChecks
             CheckDialogs();
             CheckMovement();
             CheckStaleWallpaper();
+            CheckWallpaperSettings();
             CheckCaptureFailure();
             CheckGpuCache();
             if (args.Length == 2 && args[0] == "--gif") CheckGif(args[1]);
@@ -98,6 +99,49 @@ static unsafe class EngineChecks
         Expect(!Get<bool>(engine, "_freshSinceRequest"), "ordinary restore still waits for fresh content");
         Expect(Get<int>(engine, "_fadeDuration") == 160, "ordinary restore animation stays intact");
         Console.WriteLine("  movement: processing pauses/resumes; fresh drag frame and short reveal");
+    }
+
+    static void CheckWallpaperSettings()
+    {
+        string firstPath = Path.Combine(Path.GetTempPath(), $"backdrop-check-{Guid.NewGuid():N}.png");
+        string secondPath = Path.Combine(Path.GetTempPath(), $"backdrop-check-{Guid.NewGuid():N}.png");
+        var first = Engine(new RecordingRenderer());
+        var second = Engine(new RecordingRenderer());
+        Wallpaper replacement = null;
+        try
+        {
+            using (var image = new System.Drawing.Bitmap(4, 4))
+            {
+                image.Save(firstPath, System.Drawing.Imaging.ImageFormat.Png);
+                image.Save(secondPath, System.Drawing.Imaging.ImageFormat.Png);
+            }
+            var settings = new Settings { BackgroundPath = firstPath };
+            Invoke(first, "ApplySettings", settings);
+            Invoke(second, "ApplySettings", settings);
+            var shared = Get<Wallpaper>(first, "_wall");
+            Expect(ReferenceEquals(shared, Get<Wallpaper>(second, "_wall")), "engines share decoded wallpaper frames");
+            replacement = Wallpaper.AcquireShared(secondPath);
+            Invoke(first, "ApplySettings", new Settings { BackgroundPath = firstPath, Enabled = false });
+            Expect(Get<Wallpaper>(first, "_wall") == null, "paused engine releases its wallpaper");
+            Expect(shared.FrameCount == 1, "another engine keeps the old wallpaper alive when the cache changes");
+            Expect(replacement.FrameCount == 1, "releasing an old wallpaper leaves the replacement alive");
+            var prepared = shared.Prepare(16, 16, "fill", 0);
+            Set(second, "_prepared", prepared);
+            Set(second, "_shownPrepared", prepared);
+            Invoke(second, "ApplySettings", new Settings { BackgroundPath = secondPath + ".missing" });
+            Expect(Get<PreparedWallpaper>(second, "_prepared") == null && Get<PreparedWallpaper>(second, "_shownPrepared") == null,
+                "invalid wallpaper clears the previous prepared frames");
+            Expect(shared.FrameCount == 0 && replacement.FrameCount == 1, "each wallpaper has its own reference lifetime");
+        }
+        finally
+        {
+            Get<Wallpaper>(first, "_wall")?.Dispose();
+            Get<Wallpaper>(second, "_wall")?.Dispose();
+            replacement?.Dispose();
+            File.Delete(firstPath);
+            File.Delete(secondPath);
+        }
+        Console.WriteLine("  shared wallpaper: engine integration, pause, replacement lifetime, invalid-path clearing");
     }
 
     static void CheckCaptureFailure()

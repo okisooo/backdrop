@@ -20,4 +20,7 @@
   <ItemGroup>
     <EmbeddedResource Include="..\..\assets\Backdrop.ico" LogicalName="Backdrop.ico" />
   </ItemGroup>
+  <ItemGroup Condition="'$(BundledRuntimeVersion)' != ''">
+    <FrameworkReference Update="Microsoft.NETCore.App;Microsoft.WindowsDesktop.App.WindowsForms" RuntimeFrameworkVersion="$(BundledRuntimeVersion)" />
+  </ItemGroup>
 </Project>
