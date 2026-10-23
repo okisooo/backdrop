@@ -11,7 +11,8 @@ enum TargetApp
 
 static class AppLocator
 {
-    static readonly Dictionary<(uint pid, TargetApp app), bool> Cache = new();
+    static readonly object Sync = new();
+    static readonly Dictionary<(uint pid, long startTicks, TargetApp app), bool> Cache = new();
 
     public static string DisplayName(TargetApp app) => app switch
     {
@@ -21,6 +22,30 @@ static class AppLocator
         _ => app.ToString()
     };
 
+    public static bool TryParseApp(string value, out TargetApp app)
+    {
+        app = TargetApp.Claude;
+        if (string.IsNullOrWhiteSpace(value)) return false;
+        switch (value.Trim().ToLowerInvariant())
+        {
+            case "claude": app = TargetApp.Claude; return true;
+            case "codex": app = TargetApp.Codex; return true;
+            case "t3":
+            case "t3code":
+            case "t3-code": app = TargetApp.T3Code; return true;
+            default: return false;
+        }
+    }
+
+    public static TargetApp? IdentifyWindow(IntPtr h)
+    {
+        if (h == IntPtr.Zero || Native.ClassOf(h) != "Chrome_WidgetWin_1") return null;
+        Native.GetWindowThreadProcessId(h, out uint pid);
+        foreach (TargetApp candidate in new[] { TargetApp.T3Code, TargetApp.Claude, TargetApp.Codex })
+            if (IsTargetProcess(pid, candidate)) return candidate;
+        return null;
+    }
+
     public static IntPtr FindMainWindow(TargetApp app)
     {
         IntPtr best = IntPtr.Zero;
@@ -29,8 +54,7 @@ static class AppLocator
         {
             if (!Native.IsWindowVisible(h) || Native.ClassOf(h) != "Chrome_WidgetWin_1") return true;
             long ex = (long)Native.GetWindowLongPtr(h, Native.GWL_EXSTYLE);
-            if ((ex & Native.WS_EX_TOOLWINDOW) != 0) return true;
-            if (app == TargetApp.Codex && Native.GetWindow(h, Native.GW_OWNER) != IntPtr.Zero) return true;
+            if ((ex & Native.WS_EX_TOOLWINDOW) != 0 || Native.GetWindow(h, Native.GW_OWNER) != IntPtr.Zero) return true;
             if (app == TargetApp.Claude && !Native.TitleOf(h).StartsWith("Claude", StringComparison.Ordinal)) return true;
             if (app == TargetApp.T3Code && string.IsNullOrWhiteSpace(Native.TitleOf(h))) return true;
 
@@ -45,40 +69,53 @@ static class AppLocator
         return best;
     }
 
-    static bool IsTargetProcess(uint pid, TargetApp app)
+    internal static bool IsTargetProcess(uint pid, TargetApp app)
     {
-        if (Cache.TryGetValue((pid, app), out bool known)) return known;
-        bool yes = false;
+        string imgPath = Native.ImagePathOf(pid) ?? "";
+        long startTicks = 0;
+        string modulePath = imgPath;
         try
         {
-            string imgPath = Native.ImagePathOf(pid) ?? "";
-            if (app == TargetApp.Codex)
+            using var p = Process.GetProcessById((int)pid);
+            try { startTicks = p.StartTime.Ticks; } catch { }
+            try { modulePath = p.MainModule?.FileName ?? imgPath; } catch { }
+        }
+        catch
+        {
+            if (string.IsNullOrEmpty(imgPath)) return false;
+        }
+
+        var key = (pid, startTicks, app);
+        lock (Sync)
+        {
+            if (startTicks != 0 && Cache.TryGetValue(key, out bool known)) return known;
+        }
+
+        bool yes = MatchesPath(modulePath, imgPath, app);
+        if (startTicks != 0)
+        {
+            lock (Sync)
             {
-                yes = imgPath.Contains(@"\WindowsApps\OpenAI.Codex_", StringComparison.OrdinalIgnoreCase);
-            }
-            else
-            {
-                using var p = Process.GetProcessById((int)pid);
-                string path = p.MainModule?.FileName ?? imgPath;
-                string file = Path.GetFileName(path);
-                if (app == TargetApp.Claude)
-                {
-                    yes = file.Equals("claude.exe", StringComparison.OrdinalIgnoreCase) &&
-                          (path.Contains(@"\AnthropicClaude\", StringComparison.OrdinalIgnoreCase) ||
-                           path.Contains(@"\WindowsApps\Claude_", StringComparison.OrdinalIgnoreCase));
-                }
-                else if (app == TargetApp.T3Code)
-                {
-                    yes = file.StartsWith("T3 Code", StringComparison.OrdinalIgnoreCase) ||
-                          (path.Contains(@"\T3Code\", StringComparison.OrdinalIgnoreCase) &&
-                           file.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) &&
-                           !file.Contains("resource-monitor", StringComparison.OrdinalIgnoreCase));
-                }
+                if (Cache.Count > 512) Cache.Clear();
+                Cache[key] = yes;
             }
         }
-        catch { }
-        if (Cache.Count > 512) Cache.Clear();
-        Cache[(pid, app)] = yes;
         return yes;
+    }
+
+    internal static bool MatchesPath(string modulePath, string imagePath, TargetApp app)
+    {
+        string path = !string.IsNullOrEmpty(modulePath) ? modulePath : imagePath ?? "";
+        string file = Path.GetFileName(path);
+        return app switch
+        {
+            TargetApp.Codex => (imagePath ?? path).Contains(@"\WindowsApps\OpenAI.Codex_", StringComparison.OrdinalIgnoreCase),
+            TargetApp.Claude => file.Equals("claude.exe", StringComparison.OrdinalIgnoreCase) &&
+                                (path.Contains(@"\AnthropicClaude\", StringComparison.OrdinalIgnoreCase) ||
+                                 path.Contains(@"\WindowsApps\Claude_", StringComparison.OrdinalIgnoreCase)),
+            TargetApp.T3Code => file.Equals("T3 Code.exe", StringComparison.OrdinalIgnoreCase) ||
+                                file.Equals("T3 Code (Nightly).exe", StringComparison.OrdinalIgnoreCase),
+            _ => false
+        };
     }
 }

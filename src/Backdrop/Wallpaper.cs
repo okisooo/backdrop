@@ -5,18 +5,21 @@ using System.Runtime.InteropServices;
 
 namespace Backdrop;
 
-// Wallpaper frames blurred for one window size, at a reduced working resolution. The
-// renderer upsamples them and washes them toward Codex's background as it draws, so a
-// change of background never waits for a new preparation. Immutable, so it can be built
-// off-thread.
 sealed record PreparedWallpaper(Wallpaper Source, uint[][] Frames, int SmallWidth, int SmallHeight,
     int Width, int Height, string Fit, double BlurPx);
 
-// Decoded image or GIF.
 sealed class Wallpaper : IDisposable
 {
+    static readonly object CacheSync = new();
+    static string _cachedPath;
+    static DateTime _cachedWriteUtc;
+    static Wallpaper _cachedInstance;
+    static int _cachedRefs;
+
+    readonly object _sourceLock = new();
     readonly List<Bitmap> _source = new();
     readonly List<int> _delays = new();
+    bool _shared;
 
     public int FrameCount => _source.Count;
     public int Delay(int frame) => _delays[frame];
@@ -42,7 +45,40 @@ sealed class Wallpaper : IDisposable
         return wp;
     }
 
-    // Not thread-safe for one Wallpaper; the caller runs at most one Prepare at a time.
+    public static Wallpaper AcquireShared(string path)
+    {
+        string full = Path.GetFullPath(path);
+        DateTime writeUtc = File.GetLastWriteTimeUtc(full);
+        lock (CacheSync)
+        {
+            if (_cachedInstance != null && string.Equals(_cachedPath, full, StringComparison.OrdinalIgnoreCase) && _cachedWriteUtc == writeUtc)
+            {
+                _cachedRefs++;
+                return _cachedInstance;
+            }
+        }
+
+        var loaded = Load(full);
+        lock (CacheSync)
+        {
+            if (_cachedInstance != null && string.Equals(_cachedPath, full, StringComparison.OrdinalIgnoreCase) && _cachedWriteUtc == writeUtc)
+            {
+                loaded.DisposeCore();
+                _cachedRefs++;
+                return _cachedInstance;
+            }
+            if (_cachedInstance != null && _cachedRefs <= 0)
+                _cachedInstance.DisposeCore();
+            loaded._shared = true;
+            _cachedPath = full;
+            _cachedWriteUtc = writeUtc;
+            _cachedInstance = loaded;
+            _cachedRefs = 1;
+            return loaded;
+        }
+    }
+
+    // Thread-safe: locks each source Bitmap only while scaling into the destination frame.
     public PreparedWallpaper Prepare(int w, int h, string fit, double blurPx)
     {
         int scale = Math.Max(1, (int)Math.Ceiling(Math.Max(w, h) / 480.0));
@@ -60,9 +96,12 @@ sealed class Wallpaper : IDisposable
                 g.InterpolationMode = InterpolationMode.HighQualityBicubic;
                 g.PixelOffsetMode = PixelOffsetMode.HighQuality;
                 g.CompositingMode = CompositingMode.SourceCopy;
-                var src = _source[i];
-                RectangleF from = fit == "fill" ? new RectangleF(0, 0, src.Width, src.Height) : CoverRect(src.Width, src.Height, sw, sh);
-                g.DrawImage(src, new Rectangle(0, 0, sw, sh), from.X, from.Y, from.Width, from.Height, GraphicsUnit.Pixel, attrs);
+                lock (_sourceLock)
+                {
+                    var src = _source[i];
+                    RectangleF from = fit == "fill" ? new RectangleF(0, 0, src.Width, src.Height) : CoverRect(src.Width, src.Height, sw, sh);
+                    g.DrawImage(src, new Rectangle(0, 0, sw, sh), from.X, from.Y, from.Width, from.Height, GraphicsUnit.Pixel, attrs);
+                }
             }
             if (radius > 0) BoxBlur(px, sw, sh, radius, 3);
             frames[i] = px;
@@ -77,7 +116,6 @@ sealed class Wallpaper : IDisposable
         return new RectangleF((iw - cw) / 2, (ih - ch) / 2, cw, ch);
     }
 
-    // Blends `src` toward `color` by `amount` into `dst` (the CPU renderer's wash).
     public static void Wash(uint[] src, uint[] dst, uint color, double amount)
     {
         int a = (int)Math.Round(Math.Clamp(amount, 0, 1) * 256);
@@ -93,7 +131,6 @@ sealed class Wallpaper : IDisposable
         }
     }
 
-    // Separable box blur, repeated passes approximate a gaussian. Output is opaque.
     static void BoxBlur(uint[] px, int w, int h, int r, int passes)
     {
         var tmp = new uint[px.Length];
@@ -132,7 +169,28 @@ sealed class Wallpaper : IDisposable
 
     public void Dispose()
     {
-        foreach (var b in _source) b.Dispose();
-        _source.Clear();
+        if (!_shared)
+        {
+            DisposeCore();
+            return;
+        }
+        lock (CacheSync)
+        {
+            _cachedRefs--;
+            if (_cachedRefs <= 0)
+            {
+                if (_cachedInstance == this) { _cachedInstance = null; _cachedPath = null; }
+                DisposeCore();
+            }
+        }
+    }
+
+    void DisposeCore()
+    {
+        lock (_sourceLock)
+        {
+            foreach (var b in _source) b.Dispose();
+            _source.Clear();
+        }
     }
 }

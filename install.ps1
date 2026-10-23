@@ -1,52 +1,57 @@
-# Builds Backdrop and installs it for the current user:
-#   %LOCALAPPDATA%\Programs\Backdrop\Backdrop.exe plus a Start menu shortcut.
-# Automatically migrates and replaces standalone ClaudeBackdrop, CodexBackdrop, and T3Backdrop instances.
-[CmdletBinding()]
+# Builds Backdrop, installs it to %LOCALAPPDATA%\Programs\Backdrop, adds a Start menu
+# shortcut, migrates legacy ClaudeBackdrop / CodexBackdrop / T3Backdrop startup entries,
+# and starts the unified tray app. No administrator rights needed.
 param([switch]$NoStart)
-
 $ErrorActionPreference = 'Stop'
-$root = $PSScriptRoot
+
+& (Join-Path $PSScriptRoot 'build.ps1')
+$builtExe = Join-Path $PSScriptRoot 'artifacts\publish\Backdrop.exe'
+if (-not (Test-Path $builtExe)) { throw "Build output not found at $builtExe" }
+
 $installDir = Join-Path $env:LOCALAPPDATA 'Programs\Backdrop'
 $exe = Join-Path $installDir 'Backdrop.exe'
-$shortcut = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\Backdrop.lnk'
+$stagedExe = Join-Path $installDir 'Backdrop.exe.new'
+New-Item -ItemType Directory -Force -Path $installDir | Out-Null
+Copy-Item $builtExe $stagedExe -Force
+
 $runKey = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
+if (-not (Test-Path $runKey)) { New-Item -Path $runKey -Force | Out-Null }
+$runProps = Get-ItemProperty -Path $runKey -ErrorAction SilentlyContinue
 
-& (Join-Path $root 'build.ps1') | Out-Null
+# Preserve existing startup preference if already installed; otherwise default to enabled
+$hadExistingInstall = Test-Path $exe
+$hadStartup = ($null -ne $runProps.Backdrop) -or ($null -ne $runProps.ClaudeBackdrop) -or ($null -ne $runProps.CodexBackdrop) -or ($null -ne $runProps.T3Backdrop)
+$enableStartup = (-not $hadExistingInstall) -or $hadStartup
 
-# Stop unified or legacy processes
+# Stop running Backdrop or legacy standalone *Backdrop processes before swapping the executable
 foreach ($procName in @('Backdrop', 'ClaudeBackdrop', 'CodexBackdrop', 'T3Backdrop')) {
-    Get-Process $procName -ErrorAction SilentlyContinue | ForEach-Object {
-        Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
-        $_.WaitForExit(5000) | Out-Null
-    }
+    Get-Process $procName -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
 }
+Start-Sleep -Milliseconds 300
 
-# Remove legacy Run entries and Start Menu shortcuts
-foreach ($legacy in @('ClaudeBackdrop', 'CodexBackdrop', 'T3Backdrop')) {
-    if (Get-ItemProperty $runKey -Name $legacy -ErrorAction SilentlyContinue) {
-        Remove-ItemProperty $runKey -Name $legacy -ErrorAction SilentlyContinue
-    }
-}
-foreach ($legacyLnk in @('Claude Backdrop.lnk', 'Codex Backdrop.lnk', 'T3 Backdrop.lnk')) {
-    $lnkPath = Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs\$legacyLnk"
-    if (Test-Path $lnkPath) { Remove-Item $lnkPath -Force -ErrorAction SilentlyContinue }
-}
+Move-Item $stagedExe $exe -Force
 
-New-Item -ItemType Directory -Force $installDir | Out-Null
-for ($attempt = 1; ; $attempt++) {
-    try { Copy-Item (Join-Path $root 'artifacts\publish\Backdrop.exe') $exe -Force; break }
-    catch { if ($attempt -ge 10) { throw }; Start-Sleep -Milliseconds 300 }
+# Retire legacy standalone shortcuts and startup entries now that the new binary is in place
+$programs = [Environment]::GetFolderPath('Programs')
+foreach ($legacyShortcut in @('Claude Backdrop.lnk', 'Codex Backdrop.lnk', 'T3 Backdrop.lnk')) {
+    Remove-Item (Join-Path $programs $legacyShortcut) -Force -ErrorAction SilentlyContinue
+}
+foreach ($legacyRun in @('ClaudeBackdrop', 'CodexBackdrop', 'T3Backdrop')) {
+    Remove-ItemProperty -Path $runKey -Name $legacyRun -ErrorAction SilentlyContinue
 }
 
 $shell = New-Object -ComObject WScript.Shell
-$link = $shell.CreateShortcut($shortcut)
-$link.TargetPath = $exe
-$link.WorkingDirectory = $installDir
-$link.Description = 'Wallpaper behind Claude, Codex, and T3 Code'
-$link.Save()
+$shortcut = $shell.CreateShortcut((Join-Path $programs 'Backdrop.lnk'))
+$shortcut.TargetPath = $exe
+$shortcut.WorkingDirectory = $installDir
+$shortcut.Description = 'Custom wallpaper backdrop for Claude, Codex, and T3 Code'
+$shortcut.Save()
 
-Set-ItemProperty -Path $runKey -Name 'Backdrop' -Value "`"$exe`""
+if ($enableStartup) {
+    Set-ItemProperty -Path $runKey -Name 'Backdrop' -Value "`"$exe`""
+}
 
+Write-Host "Installed to $exe"
 if (-not $NoStart) {
     try {
         $service = New-Object -ComObject "Schedule.Service"
@@ -60,11 +65,17 @@ if (-not $NoStart) {
         $action.Path = $exe
         $action.WorkingDirectory = $installDir
         $regTask = $rootFolder.RegisterTaskDefinition("LaunchBackdrop", $taskDef, 6, $null, $null, 3)
-        $regTask.Run($null) | Out-Null
-        Start-Sleep -Milliseconds 700
-        $rootFolder.DeleteTask("LaunchBackdrop", 0)
+        try {
+            $regTask.Run($null) | Out-Null
+            Start-Sleep -Milliseconds 700
+        } finally {
+            try { $rootFolder.DeleteTask("LaunchBackdrop", 0) } catch {}
+        }
     } catch {
         Start-Process explorer.exe "`"$exe`""
+        Start-Sleep -Milliseconds 700
+    }
+    if (-not (Get-Process Backdrop -ErrorAction SilentlyContinue)) {
+        Start-Process $exe -WorkingDirectory $installDir
     }
 }
-Write-Host "Installed to $exe"

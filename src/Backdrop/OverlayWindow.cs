@@ -7,13 +7,13 @@ sealed class OverlayWindow : NativeWindow, IDisposable
 {
     public event Action Resumed;
 
-    public OverlayWindow(bool composition)
+    public OverlayWindow(bool composition, string caption = "Backdrop")
     {
         int ex = Native.WS_EX_LAYERED | Native.WS_EX_TRANSPARENT | Native.WS_EX_TOOLWINDOW | Native.WS_EX_NOACTIVATE;
         if (composition) ex |= Native.WS_EX_NOREDIRECTIONBITMAP;
         CreateHandle(new CreateParams
         {
-            Caption = "Backdrop",
+            Caption = caption,
             Style = unchecked((int)0x80000000), // WS_POPUP
             ExStyle = ex,
             Width = 1,

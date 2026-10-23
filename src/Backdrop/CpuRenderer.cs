@@ -21,10 +21,10 @@ sealed unsafe class CpuRenderer : IRenderer
     public int Width => _w;
     public int Height => _h;
 
-    public CpuRenderer(GpuDevice gpu)
+    public CpuRenderer(GpuDevice gpu, string caption = "Backdrop")
     {
         _gpu = gpu;
-        Window = new OverlayWindow(composition: false);
+        Window = new OverlayWindow(composition: false, caption);
         _memDC = Native.CreateCompatibleDC(IntPtr.Zero);
     }
 
@@ -101,7 +101,8 @@ sealed unsafe class CpuRenderer : IRenderer
 
     public void Move(int x, int y)
     {
-        if (_x == int.MinValue || (x == _x && y == _y)) return;
+        if (_x == int.MinValue) return;
+        if (x == _x && y == _y && Native.GetWindowRect(Window.Handle, out var at) && at.Left == x && at.Top == y) return;
         Native.SetWindowPos(Window.Handle, IntPtr.Zero, x, y, 0, 0, Native.SWP_NOSIZE | Native.SWP_NOZORDER | Native.SWP_NOACTIVATE);
         _x = x; _y = y;
     }

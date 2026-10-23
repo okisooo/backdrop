@@ -223,10 +223,10 @@ sealed unsafe class GpuRenderer : IRenderer
     public int Width => _capW;
     public int Height => _capH;
 
-    public GpuRenderer(GpuDevice gpu, bool offscreen = false)
+    public GpuRenderer(GpuDevice gpu, bool offscreen = false, string caption = "Backdrop")
     {
         _gpu = gpu;
-        if (!offscreen) Window = new OverlayWindow(composition: true);
+        if (!offscreen) Window = new OverlayWindow(composition: true, caption);
         try
         {
             if (!offscreen)
@@ -497,7 +497,7 @@ sealed unsafe class GpuRenderer : IRenderer
 
     void Place(int x, int y, int w, int h)
     {
-        if (x == _winX && y == _winY && w == _winW && h == _winH) return;
+        if (x == _winX && y == _winY && w == _winW && h == _winH && Native.GetWindowRect(Window.Handle, out var at) && at.Left == x && at.Top == y && at.Width == w && at.Height == h) return;
         Native.SetWindowPos(Window.Handle, IntPtr.Zero, x, y, w, h, Native.SWP_NOZORDER | Native.SWP_NOACTIVATE);
         _winX = x; _winY = y; _winW = w; _winH = h;
     }

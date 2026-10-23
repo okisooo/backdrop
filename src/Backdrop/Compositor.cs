@@ -62,7 +62,7 @@ enum FrameKind { Page, Dialog, Media }
 
 static unsafe class KeyDetector
 {
-    public static BackgroundKeys? Detect(byte* rows, int pitch, int w, int h, bool blendSidebar, int current = -1, TargetApp app = TargetApp.Claude)
+    public static BackgroundKeys? Detect(byte* rows, int pitch, int w, int h, bool blendSidebar, int current = -1, TargetApp app = TargetApp.Codex)
     {
         int tol = app == TargetApp.T3Code ? 4 : 0;
         bool bucketed = app == TargetApp.T3Code;
@@ -118,7 +118,7 @@ static unsafe class KeyDetector
         return min;
     }
 
-    public static FrameKind Classify(byte* rows, int pitch, int w, int h, BackgroundKeys found, int current, TargetApp app = TargetApp.Claude)
+    public static FrameKind Classify(byte* rows, int pitch, int w, int h, BackgroundKeys found, int current, TargetApp app = TargetApp.Codex)
     {
         int tol = app == TargetApp.T3Code ? 4 : 0;
         int now = found.Keys[0];
@@ -157,7 +157,7 @@ static unsafe class KeyDetector
         return opaque > 0 && edgeOpaque > 0 && dimmed * 5 >= opaque * 2 && edgeDimmed * 4 >= edgeOpaque;
     }
 
-    public static bool IsThemeBackground(int c, TargetApp app = TargetApp.Claude)
+    public static bool IsThemeBackground(int c, TargetApp app = TargetApp.Codex)
     {
         int r = (c >> 16) & 255, g = (c >> 8) & 255, b = c & 255;
         int max = Math.Max(r, Math.Max(g, b)), min = Math.Min(r, Math.Min(g, b));
@@ -333,16 +333,40 @@ static unsafe class KeyDetector
             }
         }
         if (bTotal == 0) return null;
-        var bestBucket = buckets.MaxBy(kv => kv.Value);
-        if (bestBucket.Value < bTotal * share) return null;
+        int bestCenter = -1, bestNeighborhood = -1;
+        foreach (int b in buckets.Keys)
+        {
+            int br = (b >> 12) & 63, bg = (b >> 6) & 63, bb = b & 63;
+            int sum = 0;
+            for (int dr = -1; dr <= 1; dr++)
+            for (int dg = -1; dg <= 1; dg++)
+            for (int db = -1; db <= 1; db++)
+            {
+                int nr = br + dr, ng = bg + dg, nb = bb + db;
+                if ((uint)nr < 64 && (uint)ng < 64 && (uint)nb < 64)
+                    sum += buckets.GetValueOrDefault((nr << 12) | (ng << 6) | nb);
+            }
+            if (sum > bestNeighborhood) { bestNeighborhood = sum; bestCenter = b; }
+        }
+        if (bestNeighborhood < bTotal * share) return null;
+        int cr = (bestCenter >> 12) & 63, cg = (bestCenter >> 6) & 63, cb = bestCenter & 63;
         int bestColor = 0, bestCount = -1;
         foreach (var kv in exact)
         {
             int r = (kv.Key >> 16) & 255, g = (kv.Key >> 8) & 255, bl = kv.Key & 255;
-            int b = ((r >> 2) << 12) | ((g >> 2) << 6) | (bl >> 2);
-            if (b == bestBucket.Key && kv.Value > bestCount) { bestColor = kv.Key; bestCount = kv.Value; }
+            if (Math.Abs((r >> 2) - cr) <= 1 && Math.Abs((g >> 2) - cg) <= 1 && Math.Abs((bl >> 2) - cb) <= 1 && kv.Value > bestCount)
+            {
+                bestColor = kv.Key;
+                bestCount = kv.Value;
+            }
         }
-        return bestColor;
+        int nearHits = 0;
+        foreach (var kv in exact)
+        {
+            int r = (kv.Key >> 16) & 255, g = (kv.Key >> 8) & 255, bl = kv.Key & 255;
+            if (Compositor.Dist(r, g, bl, bestColor) <= 4) nearHits += kv.Value;
+        }
+        return nearHits >= bTotal * share ? bestColor : null;
     }
 
     static double Share(byte* rows, int pitch, int x0, int x1, int h, int step, int color, int tol)

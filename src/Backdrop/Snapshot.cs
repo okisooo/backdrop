@@ -4,17 +4,30 @@ using System.Runtime.InteropServices;
 
 namespace Backdrop;
 
-// Diagnostics. Only the target window is captured, never the rest of the screen.
 static unsafe class Snapshot
 {
-    // Renders what the overlay would show for the Codex window (or `window`) and writes
-    // out.png, out.raw.png (the window as captured) and out.calm.png (the calm field:
-    // brighter = more of Codex's background kept behind content). `key` is the background the
-    // engine would already be using, which it keeps through a new-chat page or a dialog backdrop.
-    public static int Run(string outPath, Rectangle? crop, IntPtr window, int? key = null)
+    public static int Run(string outPath, Rectangle? crop, IntPtr window, int? key = null, TargetApp? requestedApp = null)
     {
         var s = Settings.Load();
-        IntPtr target = window != IntPtr.Zero ? window : (AppLocator.FindMainWindow(TargetApp.T3Code) != IntPtr.Zero ? AppLocator.FindMainWindow(TargetApp.T3Code) : AppLocator.FindMainWindow(TargetApp.Claude) != IntPtr.Zero ? AppLocator.FindMainWindow(TargetApp.Claude) : AppLocator.FindMainWindow(TargetApp.Codex));
+        TargetApp app = requestedApp ?? TargetApp.Claude;
+        IntPtr target = window;
+
+        if (target != IntPtr.Zero)
+        {
+            app = requestedApp ?? AppLocator.IdentifyWindow(target) ?? TargetApp.Claude;
+        }
+        else if (requestedApp is { } explicitApp)
+        {
+            target = AppLocator.FindMainWindow(explicitApp);
+        }
+        else
+        {
+            foreach (var candidate in new[] { TargetApp.T3Code, TargetApp.Claude, TargetApp.Codex })
+            {
+                target = AppLocator.FindMainWindow(candidate);
+                if (target != IntPtr.Zero) { app = candidate; break; }
+            }
+        }
         if (target == IntPtr.Zero) return 2;
 
         using var gpu = new GpuDevice();
@@ -40,25 +53,23 @@ static unsafe class Snapshot
         FrameKind kind;
         fixed (uint* p = raw)
         {
-            keys = KeyDetector.Detect((byte*)p, w * 4, w, h, s.BlendSidebar, key ?? -1) ?? new BackgroundKeys(new[] { 0xFFFFFF }, new Rect(0, 0, w, h));
-            kind = KeyDetector.Classify((byte*)p, w * 4, w, h, keys, key ?? -1);
-            // Like the engine, keep the given background under a dialog backdrop.
+            keys = KeyDetector.Detect((byte*)p, w * 4, w, h, s.BlendSidebar, key ?? -1, app) ?? new BackgroundKeys(new[] { 0xFFFFFF }, new Rect(0, 0, w, h));
+            kind = KeyDetector.Classify((byte*)p, w * 4, w, h, keys, key ?? -1, app);
             if (kind == FrameKind.Dialog && key is { } k) keys = new BackgroundKeys(new[] { k }, keys.Keyed, keys.Radii, keys.Panel, keys.Pane);
         }
         using var wall = Wallpaper.Load(s.BackgroundPath);
         var prep = wall.Prepare(w, h, s.Fit, s.BlurPx);
-        renderer.SetKeys(keys, s.KeyTolerance);
+        renderer.SetKeys(keys, s.EffectiveTolerance(app));
         renderer.SetCalm(s.Calm);
         renderer.SetWash(s.Wash);
         renderer.SetWallpaper(prep.Frames[0], prep.SmallWidth, prep.SmallHeight);
 
         var output = new uint[w * h];
         var calm = new uint[w * h];
-        // Media is shown untouched: the engine hides its copy.
         if (kind is FrameKind.Media or FrameKind.Dialog) raw.CopyTo(output, 0);
         else renderer.RenderOffscreen(1, false, (rows, pitch, rw, rh) => CopyRows(rows, pitch, output, rw, rh));
         renderer.RenderOffscreen(1, true, (rows, pitch, rw, rh) => CopyRows(rows, pitch, calm, rw, rh));
-        Backdrop.Log($"snapshot {w}x{h}: {kind.ToString().ToLowerInvariant()}, {keys}");
+        Backdrop.Log($"[{AppLocator.DisplayName(app)}] snapshot {w}x{h}: {kind.ToString().ToLowerInvariant()}, {keys}");
 
         var area = crop ?? new Rectangle(0, 0, w, h);
         area.Intersect(new Rectangle(0, 0, w, h));
@@ -68,16 +79,21 @@ static unsafe class Snapshot
         return 0;
     }
 
-    // Captures the running overlay window itself (what is actually on screen above Codex).
-    public static int CaptureOverlay(string outPath)
+    public static int CaptureOverlay(string outPath, TargetApp? requestedApp = null)
     {
+        string expectedTitle = requestedApp is { } a ? $"Backdrop - {AppLocator.DisplayName(a)}" : null;
         IntPtr overlay = IntPtr.Zero;
         Native.EnumWindows((h, _) =>
         {
-            if (Native.IsWindowVisible(h) && Native.TitleOf(h) == "Backdrop" &&
-                (((long)Native.GetWindowLongPtr(h, Native.GWL_EXSTYLE) & Native.WS_EX_LAYERED) != 0))
-                overlay = h;
-            return overlay == IntPtr.Zero;
+            if (!Native.IsWindowVisible(h)) return true;
+            if ((((long)Native.GetWindowLongPtr(h, Native.GWL_EXSTYLE)) & Native.WS_EX_LAYERED) == 0) return true;
+            string title = Native.TitleOf(h);
+            bool match = expectedTitle != null
+                ? string.Equals(title, expectedTitle, StringComparison.Ordinal)
+                : title == "Backdrop" || title.StartsWith("Backdrop - ", StringComparison.Ordinal);
+            if (!match) return true;
+            overlay = h;
+            return false;
         }, IntPtr.Zero);
         if (overlay == IntPtr.Zero) return 2;
         using var gpu = new GpuDevice();

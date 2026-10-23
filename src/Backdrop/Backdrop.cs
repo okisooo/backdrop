@@ -284,6 +284,7 @@ sealed unsafe class Backdrop : IDisposable
             Attach(h);
             if (_codex == IntPtr.Zero) return;
         }
+        if (!_inMoveSize) OnCodexMoved();
         RefreshVisibility();
         if (_wall == null)
             Status = string.IsNullOrEmpty(s.BackgroundPath) ? "Choose a background" : "Background could not be loaded";
@@ -337,14 +338,14 @@ sealed unsafe class Backdrop : IDisposable
     {
         if (_settings.Renderer != "cpu" && _gpuFailures < 3)
         {
-            try { return new GpuRenderer(_gpu); }
+            try { return new GpuRenderer(_gpu, caption: $"Backdrop - {_appName}"); }
             catch (Exception ex)
             {
                 _gpuFailures++;
                 Log("GPU renderer unavailable, using the CPU renderer: " + ex.Message);
             }
         }
-        return new CpuRenderer(_gpu);
+        return new CpuRenderer(_gpu, caption: $"Backdrop - {_appName}");
     }
 
     void Detach()
@@ -696,7 +697,7 @@ sealed unsafe class Backdrop : IDisposable
                 if (p.Source == _wall && p.Width == _renderer.Width && p.Height == _renderer.Height &&
                     p.Fit == _settings.Fit && p.BlurPx == _settings.BlurPx) _prepared = p;
             }
-            else if (_prepTask.IsFaulted) Log("wallpaper prepare failed: " + _prepTask.Exception?.GetBaseException().Message);
+            else if (_prepTask.IsFaulted) Log($"[{_appName}] wallpaper prepare failed: " + _prepTask.Exception?.GetBaseException().Message);
             _prepTask = null;
         }
         if (_prepTask == null && NeedsPrepare())
@@ -737,7 +738,7 @@ sealed unsafe class Backdrop : IDisposable
         if (now - _statSince < 60000) return;
         if (_statRenders == 0) { _statSince = now; return; }
         double ms(long ticks) => ticks * 1000.0 / Stopwatch.Frequency;
-        Log($"stats: {_renderer?.Name} renderer, {_statRenders} renders ({_statFrames} of new Codex frames) in {(now - _statSince) / 1000}s; " +
+        Log($"[{_appName}] stats: {_renderer?.Name} renderer, {_statRenders} renders ({_statFrames} of new frames) in {(now - _statSince) / 1000}s; " +
             $"engine elapsed {(_statRenders == 0 ? 0 : ms(_statWork) / _statRenders):F2} ms per render; frame arrival to submission " +
             $"{(_statFrames == 0 ? 0 : ms(_statDelay) / _statFrames):F2} ms avg, {ms(_statDelayMax):F2} ms max");
         _statSince = now;
