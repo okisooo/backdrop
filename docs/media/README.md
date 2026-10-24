@@ -4,6 +4,8 @@
 
 `real-app-demo.gif` is a 10-second, looping recording of **Claude Desktop** with Backdrop running. `real-app-demo.mp4` is the higher-quality video; `real-app-demo.png` is a still.
 
+`backdrop-share.png` is the custom GitHub link-preview image, built from this same real recording.
+
 - **Original app**, on the left, is a still captured directly from Claude's window before entering the sample prompt.
 - **Backdrop enabled**, on the right, is footage captured directly from the running Backdrop overlay. The wallpaper animation and composer are real app output.
 - The app was opened to an empty new chat with its sidebar hidden. The only entered text is the unsent sample prompt, "Help me plan a calm, focused workspace."

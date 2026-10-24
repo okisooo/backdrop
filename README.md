@@ -68,4 +68,8 @@ Set-Location backdrop
 
 [Verification and release tooling](docs/reference.md#verification) · [How the renderer works](docs/how-it-works.md) · [MIT license](LICENSE)
 
+## More from OKISO
+
+[**Fleet**](https://github.com/okisooo/fleet) puts AI usage, quotas, and reset times in one Windows 11 tray app. [Explore more projects](https://github.com/okisooo).
+
 Not affiliated with or endorsed by Anthropic, OpenAI, or T3 Tools.
