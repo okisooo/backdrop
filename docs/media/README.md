@@ -27,7 +27,7 @@ The following older assets contain **invented sample interfaces**, rather than r
 The renderer sample generator is in [`tools/Backdrop.Demo`](../../tools/Backdrop.Demo). It creates no windows, capture sessions, app settings, or network requests. To reproduce those earlier samples on Windows with the .NET 9 SDK, Direct3D 11, and FFmpeg:
 
 ```powershell
-.\tools\render-demo.ps1 -FramesDirectory S:\tmp\backdrop-demo-frames -OutputDirectory S:\tmp\backdrop-demo-media
+.\tools\render-demo.ps1 -FramesDirectory .\artifacts\demo-frames -OutputDirectory .\docs\media
 ```
 
 The sample generator and its original artwork are covered by the repository's MIT license. The real recording includes Claude's interface, which belongs to Anthropic; Backdrop is an independent project.
