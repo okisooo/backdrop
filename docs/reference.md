@@ -134,7 +134,7 @@ Backdrop captures only the target Claude, Codex, and T3 Code windows locally in 
 
 ## Project History
 
-Backdrop combines the standalone Codex Backdrop, Claude Backdrop, and T3 Backdrop implementations in one codebase. The published Git histories of [Codex Backdrop](https://github.com/okisooo/codex-backdrop) and [Claude Backdrop](https://github.com/okisooo/claude-backdrop) are included in this repository's `main` history; their existing issues and releases remain in the original repositories. New downloads, updates, and issue reports belong here.
+Backdrop combines the standalone Codex Backdrop, Claude Backdrop, and T3 Backdrop implementations in one codebase. The published Codex and Claude Git histories are included in this repository's [main history](https://github.com/okisooo/backdrop/commits/main). The superseded standalone repositories have been retired. New downloads, updates, and issue reports belong here.
 
 ## License
 
