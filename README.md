@@ -66,7 +66,7 @@ Supports Claude Desktop (including its Code workspace), the official Codex Deskt
 
 Disable **Start with Windows** in the old standalone app, quit it, then start Backdrop. On first use, the unified app imports an existing standalone configuration. [Migration details](docs/reference.md#upgrading-from-standalone-codex--claude--t3-backdrop).
 
-This is the shared home for all three apps. The original Codex and Claude Git histories are included here; their older issues and releases remain in the [original Codex](https://github.com/okisooo/codex-backdrop) and [Claude](https://github.com/okisooo/claude-backdrop) repositories.
+This is the shared home for all three apps. The original Codex and Claude Git histories are included in [this repository](https://github.com/okisooo/backdrop/commits/main). The superseded standalone repositories have been retired; use this project for downloads, updates, and issue reports.
 
 ## Build from source
 
