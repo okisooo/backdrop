@@ -1,10 +1,9 @@
+<a href="https://github.com/okisooo/backdrop/releases/latest"><picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/okisooo/backdrop/main/docs/media/backdrop-sleeve-dark.gif">
+  <img src="https://raw.githubusercontent.com/okisooo/backdrop/main/docs/media/backdrop-sleeve-light.gif" alt="backdrop — your wallpaper, your AI workspace. the word backdrop is die-cut from paper and Backdrop's included sample wallpaper drifts inside the letters; for Claude Desktop, Codex Desktop and T3 Code on Windows 10 and 11" width="900">
+</picture></a>
+
 <div align="center">
-
-<img src="assets/Backdrop.ico" width="72" height="72" alt="Backdrop app icon">
-
-# backdrop
-
-### your wallpaper. your AI workspace.
 
 custom backgrounds and animated GIFs for **Claude Desktop · Codex Desktop · T3 Code**.
 
@@ -82,6 +81,6 @@ Set-Location backdrop
 
 ## More from OKISO
 
-[**Fleet**](https://github.com/okisooo/fleet) puts AI usage, quotas, and reset times in one Windows 11 tray app. [**practice room**](https://github.com/okisooo/NihongoRevisionSuite) offers short language-learning rounds. [Explore more projects by OKISO](https://github.com/okisooo).
+Backdrop is no.01 in OKISO's little tools. no.02, [**Fleet**](https://github.com/okisooo/fleet), puts AI usage, quotas, and reset times in one Windows 11 tray app. no.03, [**practice room**](https://github.com/okisooo/NihongoRevisionSuite), offers short Japanese practice rounds. [Explore more projects by OKISO](https://github.com/okisooo).
 
 Not affiliated with or endorsed by Anthropic, OpenAI, or T3 Tools.
