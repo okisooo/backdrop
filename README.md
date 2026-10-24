@@ -1,20 +1,32 @@
-# backdrop — wallpapers for your ai workspace
+<div align="center">
 
-**Animated wallpapers for Claude Desktop, Codex Desktop, and T3 Code.**
+<img src="assets/Backdrop.ico" width="72" height="72" alt="Backdrop app icon">
 
-Give your AI workspace an image or animated GIF background, with one Windows tray app. Adjust the wallpaper without changing the way you use your chats.
+# backdrop
 
-### [Download for Windows x64](https://github.com/okisooo/backdrop/releases/latest/download/Backdrop-win-x64.zip)
+### your wallpaper. your AI workspace.
 
-[Latest release](https://github.com/okisooo/backdrop/releases/latest) · [Setup](#setup) · [Settings and troubleshooting](docs/reference.md) · [Report an issue or suggest an idea](https://github.com/okisooo/backdrop/issues/new/choose)
+custom backgrounds and animated GIFs for **Claude Desktop · Codex Desktop · T3 Code**.
 
-Windows 10 / 11 · free and open source · runtime included · runs locally
+**[download for Windows x64](https://github.com/okisooo/backdrop/releases/latest/download/Backdrop-win-x64.zip)** · [quick setup](#setup) · [settings & troubleshooting](docs/reference.md)
+
+Windows 10 / 11 · free & open source · portable · runtime included
+
+</div>
 
 [![Real Claude Desktop: original app beside an animated Backdrop wallpaper](docs/media/real-app-demo.gif)](https://github.com/okisooo/backdrop/releases/download/v2.0.0/real-app-demo.mp4)
 
 Real Claude Desktop, with a soft animated wallpaper. The demo uses an empty chat and an unsent sample prompt. **[Watch the video](https://github.com/okisooo/backdrop/releases/download/v2.0.0/real-app-demo.mp4)** · [Demo details](docs/media/README.md)
 
-## What you can do
+## one app for three workspaces
+
+| app | what Backdrop adds |
+| --- | --- |
+| Claude Desktop | your own image or GIF behind the main chat and Code workspace |
+| Codex Desktop | the same wallpaper controls for the official desktop app |
+| T3 Code | wallpaper support for stable and nightly builds |
+
+## make it yours
 
 - **Use your own wallpaper.** Pick a still image or an animated GIF.
 - **Keep text readable.** Soften the background with wash and blur; use calm to fade detail behind text and controls.
@@ -70,6 +82,6 @@ Set-Location backdrop
 
 ## More from OKISO
 
-[**Fleet**](https://github.com/okisooo/fleet) puts AI usage, quotas, and reset times in one Windows 11 tray app. [Explore more projects](https://github.com/okisooo).
+[**Fleet**](https://github.com/okisooo/fleet) puts AI usage, quotas, and reset times in one Windows 11 tray app. [**practice room**](https://github.com/okisooo/NihongoRevisionSuite) offers short language-learning rounds. [Explore more projects by OKISO](https://github.com/okisooo).
 
 Not affiliated with or endorsed by Anthropic, OpenAI, or T3 Tools.
