@@ -10,7 +10,9 @@ Give your AI workspace an image or animated GIF background, with one Windows tra
 
 Windows 10 / 11 · free and open source · runtime included · runs locally
 
-<!-- Real-app walkthrough belongs here. Do not replace it with a simulated application interface. -->
+[![Real Claude Desktop: original app beside an animated Backdrop wallpaper](docs/media/real-app-demo.gif)](https://github.com/okisooo/backdrop/releases/download/v2.0.0/real-app-demo.mp4)
+
+Real Claude Desktop, with a soft animated wallpaper. The demo uses an empty chat and an unsent sample prompt. **[Watch the video](https://github.com/okisooo/backdrop/releases/download/v2.0.0/real-app-demo.mp4)** · [Demo details](docs/media/README.md)
 
 ## What you can do
 
