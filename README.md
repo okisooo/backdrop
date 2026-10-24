@@ -1,4 +1,4 @@
-# Backdrop
+# backdrop — wallpapers for your ai workspace
 
 **Animated wallpapers for Claude Desktop, Codex Desktop, and T3 Code.**
 
@@ -6,7 +6,7 @@ Give your AI workspace an image or animated GIF background, with one Windows tra
 
 ### [Download for Windows x64](https://github.com/okisooo/backdrop/releases/latest/download/Backdrop-win-x64.zip)
 
-[Latest release](https://github.com/okisooo/backdrop/releases/latest) · [Setup](#setup) · [Settings and troubleshooting](docs/reference.md) · [Report an issue](https://github.com/okisooo/backdrop/issues)
+[Latest release](https://github.com/okisooo/backdrop/releases/latest) · [Setup](#setup) · [Settings and troubleshooting](docs/reference.md) · [Report an issue or suggest an idea](https://github.com/okisooo/backdrop/issues/new/choose)
 
 Windows 10 / 11 · free and open source · runtime included · runs locally
 
@@ -66,7 +66,7 @@ Set-Location backdrop
 .\install.ps1
 ```
 
-[Verification and release tooling](docs/reference.md#verification) · [How the renderer works](docs/how-it-works.md) · [MIT license](LICENSE)
+[Contribute](CONTRIBUTING.md) · [Verification and release tooling](docs/reference.md#verification) · [How the renderer works](docs/how-it-works.md) · [MIT license](LICENSE)
 
 ## More from OKISO
 

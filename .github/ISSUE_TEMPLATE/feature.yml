@@ -1,0 +1,23 @@
+name: suggest an improvement
+description: describe a problem or a change that would make backdrop more useful
+title: "[idea] "
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: what would you like to do?
+      description: describe the task or problem, and any workaround you use today
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: how could backdrop help?
+      description: a short example is enough; mockups are welcome but optional
+    validations:
+      required: true
+  - type: input
+    id: app
+    attributes:
+      label: which app or workflow is this for?
+      placeholder: "Claude Desktop, Codex Desktop, T3 Code, or the tray app"

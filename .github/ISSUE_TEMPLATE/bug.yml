@@ -1,0 +1,46 @@
+name: report a bug
+description: help reproduce a wallpaper, attachment, or tray problem
+title: "[bug] "
+body:
+  - type: markdown
+    attributes:
+      value: "thanks for helping improve backdrop. keep private chats, account details, and tokens out of screenshots and logs."
+  - type: input
+    id: version
+    attributes:
+      label: backdrop version
+      placeholder: "for example, 2.0.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: app
+    attributes:
+      label: affected app
+      multiple: true
+      options:
+        - Claude Desktop
+        - Codex Desktop
+        - T3 Code
+        - T3 Code (Nightly)
+        - tray or settings
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: windows and app versions
+      placeholder: "windows version, target app version, and display scaling"
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: what happened?
+      description: include steps to reproduce, what you expected, and what happened instead
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: anything that helps narrow it down?
+      description: "wallpaper format, enabled apps, multiple monitors, or a screenshot of an empty sample chat. avoid sharing private content."

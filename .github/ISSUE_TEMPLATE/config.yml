@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: download the latest version
+    url: https://github.com/okisooo/backdrop/releases/latest
+    about: portable windows download, release notes, and checksums
+  - name: settings and troubleshooting
+    url: https://github.com/okisooo/backdrop/blob/main/docs/reference.md
+    about: supported apps, wallpaper controls, migration, and known limitations
